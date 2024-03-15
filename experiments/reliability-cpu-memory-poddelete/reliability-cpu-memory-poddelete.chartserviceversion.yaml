@@ -1,0 +1,39 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChartServiceVersion
+metadata:
+  annotations:
+    categories: ""
+    chartDescription: ""
+    createdAt: ""
+    repository: ""
+    support: ""
+    vendor: ""
+  name: reliability-cpu-memory-poddelete
+packageInfo:
+  experiments: null
+  packageName: ""
+spec:
+  categoryDescription: ""
+  displayName: reliability-cpu-memory-poddelete
+  experiments: null
+  faults:
+  - description: ""
+    displayName: ""
+    name: pod-cpu-hog-qxe
+    plan: null
+    supportedVersion: null
+  - description: ""
+    displayName: ""
+    name: pod-memory-hog-mei
+    plan: null
+    supportedVersion: null
+  - description: ""
+    displayName: ""
+    name: pod-delete-glp
+    plan: null
+    supportedVersion: null
+  keywords: []
+  plan: null
+  provider:
+    name: ""
+  scenarios: null
