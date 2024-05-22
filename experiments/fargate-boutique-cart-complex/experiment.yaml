@@ -1,0 +1,526 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  name: fargate-boutique-cart-complex
+  namespace: hce
+spec:
+  arguments:
+    parameters:
+    - name: adminModeNamespace
+      value: hce
+  entrypoint: fargate-boutique-cart
+  podGC:
+    strategy: OnWorkflowCompletion
+  securityContext:
+    runAsGroup: 0
+    runAsNonRoot: true
+    runAsUser: 1000
+  serviceAccountName: argo-chaos
+  templates:
+  - inputs: {}
+    metadata: {}
+    name: fargate-boutique-cart
+    outputs: {}
+    steps:
+    - - arguments: {}
+        name: install-chaos-faults
+        template: install-chaos-faults
+    - - arguments: {}
+        name: ecs-fargate-cpu-hog-x3q
+        template: ecs-fargate-cpu-hog-x3q
+      - arguments: {}
+        name: ecs-container-io-stress-m5n
+        template: ecs-container-io-stress-m5n
+    - - arguments: {}
+        name: cleanup-chaos-resources
+        template: cleanup-chaos-resources
+  - container:
+      args:
+      - kubectl apply -f /tmp/ -n {{workflow.parameters.adminModeNamespace}} && sleep
+        30
+      command:
+      - sh
+      - -c
+      image: docker.io/harness/chaos-k8s:1.37.0
+      name: ""
+      resources: {}
+    inputs:
+      artifacts:
+      - name: ecs-fargate-cpu-hog-x3q
+        path: /tmp/ecs-fargate-cpu-hog-x3q.yaml
+        raw:
+          data: |
+            apiVersion: litmuschaos.io/v1alpha1
+            description:
+              message: |
+                Inject cpu chaos on ECS task container for specified chaos duration.
+            kind: ChaosExperiment
+            metadata:
+              name: ecs-fargate-cpu-hog
+              labels:
+                name: ecs-fargate-cpu-hog
+                app.kubernetes.io/part-of: litmus
+                app.kubernetes.io/component: chaosexperiment
+                app.kubernetes.io/version: ci
+            spec:
+              definition:
+                scope: Namespaced
+                permissions:
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - pods
+                    verbs:
+                      - create
+                      - delete
+                      - get
+                      - list
+                      - patch
+                      - update
+                      - deletecollection
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - events
+                    verbs:
+                      - create
+                      - get
+                      - list
+                      - patch
+                      - update
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - configmaps
+                    verbs:
+                      - get
+                      - list
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - pods/log
+                    verbs:
+                      - get
+                      - list
+                      - watch
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - pods/exec
+                    verbs:
+                      - get
+                      - list
+                      - create
+                  - apiGroups:
+                      - apps
+                    resources:
+                      - deployments
+                      - statefulsets
+                      - replicasets
+                      - daemonsets
+                    verbs:
+                      - list
+                      - get
+                  - apiGroups:
+                      - apps.openshift.io
+                    resources:
+                      - deploymentconfigs
+                    verbs:
+                      - list
+                      - get
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - replicationcontrollers
+                    verbs:
+                      - get
+                      - list
+                  - apiGroups:
+                      - argoproj.io
+                    resources:
+                      - rollouts
+                    verbs:
+                      - list
+                      - get
+                  - apiGroups:
+                      - batch
+                    resources:
+                      - jobs
+                    verbs:
+                      - create
+                      - list
+                      - get
+                      - delete
+                      - deletecollection
+                  - apiGroups:
+                      - litmuschaos.io
+                    resources:
+                      - chaosengines
+                      - chaosexperiments
+                      - chaosresults
+                    verbs:
+                      - create
+                      - list
+                      - get
+                      - patch
+                      - update
+                      - delete
+                image: docker.io/harness/chaos-go-runner:1.37.0
+                imagePullPolicy: Always
+                args:
+                  - -c
+                  - ./experiments -name ecs-fargate-cpu-hog
+                command:
+                  - /bin/bash
+                env:
+                  - name: TOTAL_CHAOS_DURATION
+                    value: "30"
+                  - name: CHAOS_INTERVAL
+                    value: "30"
+                  - name: RAMP_TIME
+                    value: ""
+                  - name: CLUSTER_NAME
+                    value: ""
+                  - name: SERVICE_NAME
+                    value: ""
+                  - name: CPU_CORE
+                    value: "2"
+                  - name: CONTAINER_IMAGE
+                    value: chaosnative/chaos-go-runner:1.37.0
+                  - name: REGION
+                    value: ""
+                  - name: TASK_REPLICA_AFFECTED_PERC
+                    value: "100"
+                  - name: AWS_SHARED_CREDENTIALS_FILE
+                    value: /tmp/cloud_config.yml
+                labels:
+                  name: ecs-fargate-cpu-hog
+                  app.kubernetes.io/part-of: litmus
+                  app.kubernetes.io/component: experiment-job
+                  app.kubernetes.io/version: ci
+                  app.kubernetes.io/enableAWSAccessViaSecrets: enable
+                securityContext:
+                  podSecurityContext:
+                    runAsUser: 2000
+                    runAsGroup: 0
+                secrets:
+                  - name: cloud-secret
+                    mountPath: /tmp/
+      - name: ecs-container-io-stress-m5n
+        path: /tmp/ecs-container-io-stress-m5n.yaml
+        raw:
+          data: |
+            apiVersion: litmuschaos.io/v1alpha1
+            description:
+              message: >
+                Inject IO stress on the AWS ECS task containers for a specific chaos duration
+            kind: ChaosExperiment
+            metadata:
+              name: ecs-container-io-stress
+              labels:
+                name: ecs-container-io-stress
+                app.kubernetes.io/part-of: litmus
+                app.kubernetes.io/component: chaosexperiment
+                app.kubernetes.io/version: ci
+            spec:
+              definition:
+                scope: Namespaced
+                permissions:
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - pods
+                    verbs:
+                      - create
+                      - delete
+                      - get
+                      - list
+                      - patch
+                      - update
+                      - deletecollection
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - events
+                    verbs:
+                      - create
+                      - get
+                      - list
+                      - patch
+                      - update
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - configmaps
+                    verbs:
+                      - get
+                      - list
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - pods/log
+                    verbs:
+                      - get
+                      - list
+                      - watch
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - pods/exec
+                    verbs:
+                      - get
+                      - list
+                      - create
+                  - apiGroups:
+                      - apps
+                    resources:
+                      - deployments
+                      - statefulsets
+                      - replicasets
+                      - daemonsets
+                    verbs:
+                      - list
+                      - get
+                  - apiGroups:
+                      - apps.openshift.io
+                    resources:
+                      - deploymentconfigs
+                    verbs:
+                      - list
+                      - get
+                  - apiGroups:
+                      - ""
+                    resources:
+                      - replicationcontrollers
+                    verbs:
+                      - get
+                      - list
+                  - apiGroups:
+                      - argoproj.io
+                    resources:
+                      - rollouts
+                    verbs:
+                      - list
+                      - get
+                  - apiGroups:
+                      - batch
+                    resources:
+                      - jobs
+                    verbs:
+                      - create
+                      - list
+                      - get
+                      - delete
+                      - deletecollection
+                  - apiGroups:
+                      - litmuschaos.io
+                    resources:
+                      - chaosengines
+                      - chaosexperiments
+                      - chaosresults
+                    verbs:
+                      - create
+                      - list
+                      - get
+                      - patch
+                      - update
+                      - delete
+                image: docker.io/harness/chaos-go-runner:1.37.0
+                imagePullPolicy: Always
+                args:
+                  - -c
+                  - ./experiments -name ecs-container-io-stress
+                command:
+                  - /bin/bash
+                env:
+                  - name: TOTAL_CHAOS_DURATION
+                    value: "30"
+                  - name: RAMP_TIME
+                    value: ""
+                  - name: CLUSTER_NAME
+                    value: ""
+                  - name: SERVICE_NAME
+                    value: ""
+                  - name: REGION
+                    value: ""
+                  - name: FILESYSTEM_UTILIZATION_BYTES
+                    value: "1"
+                  - name: FILESYSTEM_UTILIZATION_PERCENTAGE
+                    value: "0"
+                  - name: VOLUME_MOUNT_PATH
+                    value: /tmp
+                  - name: NUMBER_OF_WORKERS
+                    value: "1"
+                  - name: INSTALL_DEPENDENCIES
+                    value: "True"
+                  - name: AWS_SHARED_CREDENTIALS_FILE
+                    value: /tmp/cloud_config.yml
+                  - name: DEFAULT_HEALTH_CHECK
+                    value: "false"
+                  - name: SEQUENCE
+                    value: parallel
+                labels:
+                  name: ecs-container-io-stress
+                  app.kubernetes.io/part-of: litmus
+                  app.kubernetes.io/component: experiment-job
+                  app.kubernetes.io/version: ci
+                  app.kubernetes.io/enableAWSAccessViaSecrets: enable
+                securityContext:
+                  podSecurityContext:
+                    runAsUser: 2000
+                    runAsGroup: 0
+                secrets:
+                  - name: cloud-secret
+                    mountPath: /tmp/
+    metadata: {}
+    name: install-chaos-faults
+    outputs: {}
+  - container:
+      args:
+      - kubectl delete chaosengine -l workflow_run_id={{workflow.uid}} -n {{workflow.parameters.adminModeNamespace}}
+      command:
+      - sh
+      - -c
+      image: docker.io/harness/chaos-k8s:1.37.0
+      name: ""
+      resources: {}
+    inputs: {}
+    metadata: {}
+    name: cleanup-chaos-resources
+    outputs: {}
+  - container:
+      args:
+      - -file=/tmp/chaosengine-ecs-fargate-cpu-hog-x3q.yaml
+      - -saveName=/tmp/engine-name
+      command:
+      - ./var/run/checker
+      image: docker.io/harness/litmus-checker:1.37.0
+      name: ""
+      resources: {}
+    inputs:
+      artifacts:
+      - name: ecs-fargate-cpu-hog-x3q
+        path: /tmp/chaosengine-ecs-fargate-cpu-hog-x3q.yaml
+        raw:
+          data: |
+            apiVersion: litmuschaos.io/v1alpha1
+            kind: ChaosEngine
+            metadata:
+              namespace: "{{workflow.parameters.adminModeNamespace}}"
+              labels:
+                workflow_run_id: "{{ workflow.uid }}"
+                workflow_name: fargate-boutique-cart-complex
+              annotations:
+                probeRef: '[{"name":"fargate-boutique-availability","mode":"Continuous"},{"name":"aws-fargate-healthcheck","mode":"Edge"}]'
+              generateName: ecs-fargate-cpu-hog-x3q
+            spec:
+              engineState: active
+              terminationGracePeriodSeconds: 30
+              chaosServiceAccount: litmus-admin
+              experiments:
+                - name: ecs-fargate-cpu-hog
+                  spec:
+                    components:
+                      env:
+                        - name: TOTAL_CHAOS_DURATION
+                          value: "30"
+                        - name: CHAOS_INTERVAL
+                          value: "30"
+                        - name: RAMP_TIME
+                          value: ""
+                        - name: CLUSTER_NAME
+                          value: titra-microservices-demo-cluster
+                        - name: SERVICE_NAME
+                          value: cartservice
+                        - name: CPU_CORE
+                          value: "2"
+                        - name: CONTAINER_IMAGE
+                          value: chaosnative/chaos-go-runner:1.37.0
+                        - name: REGION
+                          value: us-east-1
+                        - name: TASK_REPLICA_AFFECTED_PERC
+                          value: "100"
+                        - name: AWS_SHARED_CREDENTIALS_FILE
+                          value: /tmp/cloud_config.yml
+                      statusCheckTimeouts:
+                        delay: 2
+                        timeout: 360
+              jobCleanUpPolicy: delete
+    metadata:
+      labels:
+        weight: "10"
+    name: ecs-fargate-cpu-hog-x3q
+    outputs: {}
+  - container:
+      args:
+      - -file=/tmp/chaosengine-ecs-container-io-stress-m5n.yaml
+      - -saveName=/tmp/engine-name
+      command:
+      - ./var/run/checker
+      image: docker.io/harness/litmus-checker:1.37.0
+      name: ""
+      resources: {}
+    inputs:
+      artifacts:
+      - name: ecs-container-io-stress-m5n
+        path: /tmp/chaosengine-ecs-container-io-stress-m5n.yaml
+        raw:
+          data: |
+            apiVersion: litmuschaos.io/v1alpha1
+            kind: ChaosEngine
+            metadata:
+              namespace: "{{workflow.parameters.adminModeNamespace}}"
+              labels:
+                workflow_run_id: "{{ workflow.uid }}"
+                workflow_name: fargate-boutique-cart-complex
+              annotations:
+                probeRef: '[{"name":"aws-ecs-healthcheck","mode":"Edge"},{"name":"fargate-boutique-availability","mode":"Continuous"}]'
+              generateName: ecs-container-io-stress-m5n
+            spec:
+              engineState: active
+              terminationGracePeriodSeconds: 30
+              chaosServiceAccount: litmus-admin
+              experiments:
+                - name: ecs-container-io-stress
+                  spec:
+                    components:
+                      env:
+                        - name: TOTAL_CHAOS_DURATION
+                          value: "30"
+                        - name: RAMP_TIME
+                          value: ""
+                        - name: CLUSTER_NAME
+                          value: aaa
+                        - name: SERVICE_NAME
+                          value: redis-cart
+                        - name: REGION
+                          value: us-east-1
+                        - name: FILESYSTEM_UTILIZATION_BYTES
+                          value: "1"
+                        - name: FILESYSTEM_UTILIZATION_PERCENTAGE
+                          value: "0"
+                        - name: VOLUME_MOUNT_PATH
+                          value: /data
+                        - name: NUMBER_OF_WORKERS
+                          value: "4"
+                        - name: INSTALL_DEPENDENCIES
+                          value: "True"
+                        - name: AWS_SHARED_CREDENTIALS_FILE
+                          value: /tmp/cloud_config.yml
+                        - name: DEFAULT_HEALTH_CHECK
+                          value: "false"
+                        - name: SEQUENCE
+                          value: parallel
+                      statusCheckTimeouts:
+                        delay: 2
+                        timeout: 360
+              jobCleanUpPolicy: delete
+    metadata:
+      labels:
+        weight: "10"
+    name: ecs-container-io-stress-m5n
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null
