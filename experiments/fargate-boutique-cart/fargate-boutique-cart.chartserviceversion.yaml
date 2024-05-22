@@ -1,0 +1,29 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChartServiceVersion
+metadata:
+  annotations:
+    categories: ""
+    chartDescription: ""
+    createdAt: ""
+    repository: ""
+    support: ""
+    vendor: ""
+  name: fargate-boutique-cart
+packageInfo:
+  experiments: null
+  packageName: ""
+spec:
+  categoryDescription: ""
+  displayName: fargate-boutique-cart
+  experiments: null
+  faults:
+  - description: ""
+    displayName: ""
+    name: ecs-fargate-cpu-hog-x3q
+    plan: null
+    supportedVersion: null
+  keywords: []
+  plan: null
+  provider:
+    name: ""
+  scenarios: null
