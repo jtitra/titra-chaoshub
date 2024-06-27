@@ -1,0 +1,6 @@
+---
+packageName: postgresql
+experiments:
+  - name: postgresql-network-partition
+    CSV: postgresql-network-partition.chartserviceversion.yaml
+    desc: "postgresql-network-partition"

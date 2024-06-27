@@ -1,0 +1,23 @@
+---
+apiVersion: litmuchaos.io/v1alpha1
+kind: ChartServiceVersion
+metadata:
+  name: postgresql
+  annotations:
+    categories: PostgreSQL
+    chartDescription: Injects chaos in PostgreSQL VM
+    executionPlane: "linux"
+spec:
+  displayName: PostgreSQL
+  categoryDescription: >
+    It contains chaos to disrupt state of a PostgreSQL VM
+  faults:
+    - name: postgresql-network-partition
+      description: It partitions network between the database and application.
+      displayName: "PostgreSQL Network Partition"
+      plan:
+        - team
+  keywords:
+    - Linux
+    - Network
+    - PostgreSQL

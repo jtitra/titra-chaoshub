@@ -1,0 +1,23 @@
+---
+apiVersion: litmuchaos.io/v1alpha1
+kind: ChartServiceVersion
+metadata:
+  name: postgresql-network-partition
+  version: 0.1.0
+  annotations:
+    categories: Linux
+spec:
+  displayName: postgresql-network-partition
+  categoryDescription: |
+    This fault injects network loss to a Linux machine.
+    - Simulates network partitions between the database and application servers to test the handling of connectivity issues.
+  keywords:
+    - PostgreSQL
+    - Linux
+    - Network
+  plan:
+    - team
+  maturity: alpha
+  labels:
+    app.kubernetes.io/component: chartserviceversion
+    app.kubernetes.io/version: ci
